@@ -28,6 +28,12 @@ TYPE_DIRS = {
     "Source": "sources",
     "Synthesis": "synthesis",
 }
+TYPE_PLURALS = {
+    "Entity": "Entities",
+    "Concept": "Concepts",
+    "Source": "Sources",
+    "Synthesis": "Synthesis",
+}
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
@@ -104,11 +110,17 @@ def main():
     # Generate index content
     lines = [index_fm + "# Wiki Index\n"]
 
+    # Track total for summary
+    total = 0
+    known_types = set()
+
     # Known types in defined order
     for doc_type in TYPE_ORDER:
         type_dir = TYPE_DIRS.get(doc_type, doc_type.lower() + "s")
-        section_name = doc_type + "s"
+        section_name = TYPE_PLURALS.get(doc_type, doc_type + "s")
         entries = by_type.pop(doc_type, [])
+        total += len(entries)
+        known_types.add(doc_type)
 
         lines.append(f"## {section_name}\n")
         if entries:
@@ -127,6 +139,7 @@ def main():
     for doc_type, entries in sorted(by_type.items()):
         section_name = doc_type + "s"
         lines.append(f"## {section_name}\n")
+        total += len(entries)
         for rel_path, title, desc in entries:
             link = f"/{rel_path}"
             if desc:
@@ -140,11 +153,9 @@ def main():
     with open(index_path, "w", encoding="utf-8") as f:
         f.write(output)
 
-    total = sum(len(v) for v in by_type.values()) + sum(
-        len(by_type.get(t, [])) for t in TYPE_ORDER
-    )
+    num_types = len(known_types) + len(by_type)
     print(f"Generated {index_path}")
-    print(f"Indexed {total} concept document(s) across {len(TYPE_ORDER) + len(by_type)} type(s).")
+    print(f"Indexed {total} concept document(s) across {num_types} type(s).")
     sys.exit(0)
 
 
