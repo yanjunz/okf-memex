@@ -25,3 +25,4 @@ venv/
 # Obsidian
 .obsidian/workspace*
 .obsidian/cache
+.thumbs/
