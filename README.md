@@ -1,5 +1,7 @@
 # okf-memex
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 > An OKF-compliant LLM Wiki framework — where LLMs incrementally build and maintain a persistent, interlinked knowledge base.
 
 Inspired by [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) and built on the [Open Knowledge Format (OKF) v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) specification. Named after Vannevar Bush's **Memex** — the 1945 vision of a personal, curated knowledge store with associative trails, where the unsolved problem of "who does the maintenance" is finally solved by LLMs.
