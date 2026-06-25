@@ -1,0 +1,27 @@
+# Raw sources — large files
+raw/papers/*.pdf
+raw/videos/*.mp4
+raw/videos/*.mkv
+raw/podcasts/*.mp3
+raw/books/*.pdf
+raw/books/*.epub
+
+# Keep markdown/text sources
+!raw/papers/*.md
+!raw/videos/*.md
+!raw/podcasts/*.md
+!raw/books/*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Obsidian
+.obsidian/workspace*
+.obsidian/cache
