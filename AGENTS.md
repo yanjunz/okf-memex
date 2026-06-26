@@ -246,6 +246,7 @@ When the user provides a new source to process:
 8. **Append `wiki/log.md`**: Add an entry with today's date.
 9. **Run `python scripts/okf_check.py wiki/`** to verify OKF compliance.
 10. **Report** to the user: list all pages created/updated.
+11. **Auto-commit**: `git add -A && git commit -m "Ingest: <source title>" && git push`
 
 ### Log entry format
 
@@ -266,6 +267,7 @@ When the user asks a question:
 5. If yes:
    - Create `wiki/synthesis/<synthesis-id>.md` using the Synthesis template.
    - Update `wiki/index.md` and `wiki/log.md`.
+   - **Auto-commit**: `git add -A && git commit -m "Query: <question summary> → synthesis/<synthesis-id>" && git push`
 6. If no: leave the answer in chat only.
 
 ### Log entry format for queries
@@ -291,6 +293,7 @@ When the user asks to lint the wiki:
 4. **Generate a report** with recommended fixes.
 5. **User confirms** which fixes to apply.
 6. **Apply fixes**, then update `wiki/log.md`.
+7. **Auto-commit**: `git add -A && git commit -m "Lint: <summary of fixes>" && git push`
 
 ### Log entry format for lint
 
