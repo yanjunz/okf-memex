@@ -170,8 +170,15 @@ See [okf-memex](https://git.woa.com/yjzhuang/okf-memex) for framework documentat
     if os.path.exists(init_script):
         os.remove(init_script)
 
+    # Create symlink: wiki/Clippings → ../raw/web
+    # Lets Obsidian Web Clipper save directly into raw/web/ from the vault
+    clippings_link = os.path.join(target, "wiki", "Clippings")
+    if not os.path.exists(clippings_link):
+        os.symlink("../raw/web", clippings_link)
+
     print("✓ Directory structure created")
     print("✓ Demo content cleared")
+    print("✓ Symlink created: wiki/Clippings → ../raw/web (for Obsidian Web Clipper)")
     print("✓ Fresh index.md and log.md generated")
     print("✓ README.md written")
     print()
@@ -233,6 +240,12 @@ def cmd_update(args):
     if os.path.exists(init_src) and file_hash(init_src) != file_hash(init_dst):
         shutil.copy2(init_src, init_dst)
         updated.append("scripts/init_wiki.py")
+
+    # Ensure symlink exists: wiki/Clippings → ../raw/web
+    clippings_link = os.path.join(target, "wiki", "Clippings")
+    if not os.path.exists(clippings_link):
+        os.symlink("../raw/web", clippings_link)
+        updated.append("wiki/Clippings (symlink)")
 
     # Report
     if updated:
