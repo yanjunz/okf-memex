@@ -15,7 +15,7 @@
 git clone git@git.woa.com:yjzhuang/okf-memex.git
 
 # 从模板创建新 wiki
-python okf-memex/scripts/init_wiki.py ~/Documents/my-wiki --topic "LLM技术"
+python okf-memex/scripts/init_wiki.py create ~/Documents/my-wiki --topic "LLM技术"
 
 # 初始化为你自己的仓库
 cd ~/Documents/my-wiki
@@ -23,13 +23,27 @@ git init
 git remote add origin <你的仓库地址>
 git add -A && git commit -m "init: my wiki"
 git push -u origin main
+
+# 用 Obsidian 打开 wiki/ 目录作为 vault
+```
+
+### 更新脚手架文件
+
+模板更新后，同步脚手架文件（scripts、AGENTS.md、.gitignore）到你的 wiki —— 不碰你的内容：
+
+```bash
+cd ~/okf-memex && git pull
+python scripts/init_wiki.py update ~/Documents/my-wiki
+cd ~/Documents/my-wiki
+git diff                          # 查看变更
+git add -A && git commit -m "Update scaffold from okf-memex template"
 ```
 
 ### 日常使用
 
-1. **打开** wiki 目录作为 Obsidian vault
-2. **添加源** 到 `raw/` 子目录（Web Clipper 剪藏、PDF、字幕、笔记）
-3. **摄入** — 告诉 Box：`"摄入 raw/web/xxx.md"`
+1. **打开** `wiki/` 作为 Obsidian vault
+2. **剪藏源文档** — 用 Obsidian Web Clipper，自动保存到 `Clippings/` → `raw/web/`
+3. **摄入** — 告诉 Box：`"摄入 raw/web/xxx.md"` 或 `"批量摄入"`
 4. **查询** — 随时提问，Box 从 wiki 综合回答
 5. **Lint** — 定期让 Box 做健康检查
 
@@ -62,36 +76,91 @@ git push -u origin main
 所有脚本仅依赖标准 Python 3，无第三方库。
 
 ```bash
+# 脚手架管理
+python scripts/init_wiki.py create <dir> --topic "..."   # 从模板创建新 wiki
+python scripts/init_wiki.py update <dir>                  # 同步脚手架文件到已有 wiki
+
+# Wiki 维护
 python scripts/okf_check.py wiki/      # OKF v0.1 合规检查
 python scripts/link_check.py wiki/     # 断链 + 孤儿页检测
 python scripts/gen_index.py wiki/      # 从 frontmatter 重新生成 index.md
 python scripts/parse_log.py wiki/ 10   # 显示最近 10 条日志
-python scripts/init_wiki.py <dir>      # 从模板创建新 wiki
+
+# 自动化
+python scripts/scan_sources.py wiki/ raw/    # 扫描未处理的源文件
+python scripts/scan_sources.py wiki/ raw/ --json  # JSON 输出（供定时任务用）
+python scripts/auto_toggle.py <dir> ingest on     # 开启自动摄入
+python scripts/auto_toggle.py <dir> ingest off    # 关闭自动摄入（仅通知）
+python scripts/auto_toggle.py <dir> lint on       # 开启自动 Lint
+python scripts/auto_toggle.py <dir> status        # 查看自动化状态
 ```
+
+## 自动化
+
+### 定时任务
+
+通过 Box 创建每日定时任务，扫描 `raw/` 中的新源文件：
+
+| 模式 | 行为 |
+|---|---|
+| **通知模式**（默认） | 扫描 → 企微推送待摄入列表 → 你手动让 Box 摄入 |
+| **自动摄入模式** | 扫描 → Box 自动读文件、生成页面、更新索引/日志 → 推送结果摘要 |
+
+切换模式：
+
+```bash
+python scripts/auto_toggle.py ~/my-wiki ingest on    # 开启自动摄入
+python scripts/auto_toggle.py ~/my-wiki ingest off   # 仅通知（默认）
+python scripts/auto_toggle.py ~/my-wiki status        # 查看当前状态
+```
+
+配置存储在 `.automation.json`（已 gitignore，按个人 wiki 独立配置）。
+
+### 同步模板更新
+
+```bash
+cd ~/okf-memex && git pull
+python scripts/init_wiki.py update ~/my-wiki
+```
+
+只同步 `scripts/`、`AGENTS.md`、`.gitignore` —— 你的 `wiki/`、`raw/`、`README.md` 不会被修改。
 
 ## 目录结构
 
 ```
 okf-memex/                    # 模板仓库
 ├── AGENTS.md                 # Schema 层：Box 操作手册
-├── scripts/                  # CLI 工具（含 init_wiki.py）
-│   ├── init_wiki.py          #   从模板创建新 wiki
+├── scripts/                  # CLI 工具
+│   ├── init_wiki.py          #   create / update wiki 脚手架
 │   ├── okf_check.py          #   OKF v0.1 一致性校验
 │   ├── link_check.py         #   断链 & 孤儿页检测
 │   ├── gen_index.py          #   重新生成 index.md
-│   └── parse_log.py          #   显示最近日志条目
+│   ├── parse_log.py          #   显示最近日志条目
+│   ├── scan_sources.py       #   扫描 raw/ 中未处理的源
+│   └── auto_toggle.py        #   自动化开关控制
 ├── raw/                      # 不可变原始资源（模板目录）
 │   ├── web/  papers/  videos/  books/  code/  podcasts/  notes/
 │   └── assets/
 ├── wiki/                     # OKF Bundle（空模板）
 │   ├── index.md              #   内容目录（OKF §6）
 │   ├── log.md                #   操作日志（OKF §7）
+│   ├── Clippings → ../raw/web  # 符号链接，供 Obsidian Web Clipper 使用
 │   ├── entities/             #   type: Entity
 │   ├── concepts/             #   type: Concept
 │   ├── sources/              #   type: Source
 │   └── synthesis/            #   type: Synthesis
 └── .gitignore
 ```
+
+## Obsidian 集成
+
+- **打开 `wiki/` 作为 vault**（不是仓库根目录）
+- **Web Clipper**：保存到 `Clippings/` → 通过符号链接实际写入 `raw/web/`
+- **图谱视图**：可视化 wiki 连接关系，发现枢纽页和孤儿页
+- **Dataview**：查询 frontmatter（`type`、`tags`、`timestamp`）生成动态视图
+- **Marp**：从 wiki 内容生成幻灯片
+- Box 写入标准 markdown 链接 —— Obsidian 原生渲染
+- 你可手动编辑任何页面 —— Box 在写入前重新读取，避免覆盖
 
 ## OKF 合规
 
@@ -100,15 +169,6 @@ okf-memex/                    # 模板仓库
 - ✅ Bundle 根声明 `okf_version: "0.1"`
 - ✅ 交叉链接使用标准 markdown 语法（优先使用 bundle 相对绝对链接）
 - ✅ 引用列于 `# Citations` 标题下
-
-## Obsidian 集成
-
-- **Web Clipper**：浏览器扩展 → `raw/web/`，快速获取来源
-- **图谱视图**：可视化 wiki 连接关系，发现枢纽页和孤儿页
-- **Dataview**：查询 frontmatter（`type`、`tags`、`timestamp`）生成动态视图
-- **Marp**：从 wiki 内容生成幻灯片
-- Box 写入标准 markdown 链接 —— Obsidian 原生渲染
-- 你可手动编辑任何页面 —— Box 在写入前重新读取，避免覆盖
 
 ## 许可
 
