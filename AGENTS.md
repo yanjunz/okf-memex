@@ -339,9 +339,60 @@ When the user asks to lint the wiki:
 | `link_check.py` | `python scripts/link_check.py wiki/` | Detect broken links and orphan pages |
 | `gen_index.py` | `python scripts/gen_index.py wiki/` | Regenerate `wiki/index.md` from frontmatter |
 | `parse_log.py` | `python scripts/parse_log.py wiki/ [N]` | Show last N log entries (default 10) |
+| `scan_sources.py` | `python scripts/scan_sources.py wiki/ raw/` | Find unprocessed sources in raw/ |
+| `init_wiki.py` | `python scripts/init_wiki.py <dir> --topic "..."` | Scaffold a new wiki from template |
 
 All scripts:
 - Use standard Python 3, no third-party dependencies.
 - Can run independently without Box.
 - Output human-readable text that Box can also parse.
 - Exit code 0 = success, 1 = issues found.
+- `--json` flag available on `scan_sources.py` for automation.
+
+## 9. Batch Ingest Workflow
+
+When the user says "批量摄入" or "batch ingest":
+
+1. **Run `python scripts/scan_sources.py wiki/ raw/`** to find unprocessed sources.
+2. If no unprocessed sources: report "All sources have been ingested" and stop.
+3. For each unprocessed source:
+   a. Read the source file.
+   b. Generate a Source summary page.
+   c. Identify and create/update Entity pages.
+   d. Identify and create/update Concept pages.
+   e. Update cross-references.
+4. After all sources are processed:
+   a. Update `wiki/index.md` (run `gen_index.py` or manual update).
+   b. Append a single batch entry to `wiki/log.md`.
+   c. Run `okf_check.py` and `link_check.py` to verify.
+5. Report summary: N sources ingested, M pages created/updated.
+
+### Log entry format for batch ingest
+
+```markdown
+## <YYYY-MM-DD>
+
+* **Batch Ingest**: Processed <N> sources. Created <X> entity pages, <Y> concept pages, <Z> source pages. Files: <list of filenames>.
+```
+
+## 10. Scheduled Automation
+
+A scheduled task can run `scan_sources.py` periodically to detect new files in `raw/`. Two modes:
+
+### Notification mode (default)
+
+1. Run `scan_sources.py --json` at scheduled time.
+2. If unprocessed sources found: push notification to user via WeCom.
+3. User decides when to ingest (sync or batch).
+
+### Auto-ingest mode
+
+1. Run `scan_sources.py --json` at scheduled time.
+2. If unprocessed sources found: invoke Box CLI to batch ingest.
+3. Push results summary via WeCom after completion.
+
+### Weekly Lint
+
+1. Run `okf_check.py` and `link_check.py` weekly.
+2. Push report via WeCom.
+3. Suggest fixes for user to confirm.
