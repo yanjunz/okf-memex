@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Scaffold a new OKF-compliant LLM Wiki from the okf-memex template.
-
-Creates a fresh wiki directory with clean structure, ready for content.
+"""Scaffold and update OKF-compliant LLM Wikis from the okf-memex template.
 
 Usage:
-    python init_wiki.py <target_dir> [--topic "主题名称"] [--author "作者"]
+    # Create a new wiki
+    python init_wiki.py create <target_dir> --topic "主题名称"
+
+    # Update an existing wiki's scaffold files from template
+    python init_wiki.py update <target_dir>
 
 Examples:
-    python init_wiki.py ~/Documents/my-llm-wiki --topic "LLM技术"
-    python init_wiki.py ./team-wiki --topic "团队知识库" --author "团队名"
+    python init_wiki.py create ~/Documents/my-llm-wiki --topic "LLM技术"
+    python init_wiki.py update ~/Documents/my-llm-wiki
 
 Exit codes:
-    0 — wiki scaffolded successfully
+    0 — success
     1 — error
 """
 
@@ -19,24 +21,38 @@ import sys
 import os
 import shutil
 import argparse
+import hashlib
+from datetime import datetime, timezone, timedelta
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_ROOT = os.path.dirname(SCRIPT_DIR)  # okf-memex/ root
 
+# Files synced by `update` — scaffold only, never touch content
+SCAFFOLD_FILES = [
+    "AGENTS.md",
+    ".gitignore",
+    "scripts/okf_check.py",
+    "scripts/link_check.py",
+    "scripts/gen_index.py",
+    "scripts/parse_log.py",
+    "scripts/scan_sources.py",
+]
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Scaffold a new OKF LLM Wiki from okf-memex template."
-    )
-    parser.add_argument("target", help="Target directory path for the new wiki")
-    parser.add_argument("--topic", default="My Wiki", help="Wiki topic/name (default: My Wiki)")
-    parser.add_argument("--author", default="", help="Author name (default: git config user.name)")
-    args = parser.parse_args()
 
+def file_hash(filepath):
+    """Return MD5 hash of file content, or None if unreadable."""
+    try:
+        with open(filepath, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()
+    except Exception:
+        return None
+
+
+def cmd_create(args):
+    """Create a new wiki from template."""
     target = os.path.abspath(args.target)
     topic = args.topic
-    author = args.author or "wiki author"
 
     if os.path.exists(target):
         print(f"Error: {target} already exists. Choose a new directory.")
@@ -55,7 +71,6 @@ def main():
     wiki_dirs = ["entities", "concepts", "sources", "synthesis"]
     for d in wiki_dirs:
         dir_path = os.path.join(target, "wiki", d)
-        # Remove everything except .gitkeep
         for item in os.listdir(dir_path):
             if item != ".gitkeep":
                 item_path = os.path.join(dir_path, item)
@@ -79,7 +94,7 @@ def main():
     # Write fresh index.md
     index_path = os.path.join(target, "wiki", "index.md")
     with open(index_path, "w", encoding="utf-8") as f:
-        f.write(f"""---
+        f.write("""---
 okf_version: "0.1"
 ---
 
@@ -103,7 +118,6 @@ okf_version: "0.1"
 """)
 
     # Write fresh log.md
-    from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     log_path = os.path.join(target, "wiki", "log.md")
     with open(log_path, "w", encoding="utf-8") as f:
@@ -114,11 +128,8 @@ okf_version: "0.1"
 * **Initialization**: Created wiki "{topic}" from okf-memex template.
 """)
 
-    # Update AGENTS.md — no changes needed, it's generic
-
     # Write fresh README
     readme_path = os.path.join(target, "README.md")
-    slug = os.path.basename(target)
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(f"""# {topic}
 
@@ -139,6 +150,7 @@ python scripts/okf_check.py wiki/     # OKF 合规检查
 python scripts/link_check.py wiki/    # 断链 + 孤儿页检测
 python scripts/gen_index.py wiki/     # 重新生成 index.md
 python scripts/parse_log.py wiki/ 10  # 查看最近日志
+python scripts/scan_sources.py wiki/ raw/  # 扫描未处理源
 ```
 
 ## Structure
@@ -146,7 +158,7 @@ python scripts/parse_log.py wiki/ 10  # 查看最近日志
 See [okf-memex](https://git.woa.com/yjzhuang/okf-memex) for framework documentation.
 """)
 
-    # Remove the Chinese README and design spec from personal wiki
+    # Remove the Chinese README from personal wiki
     zh_readme = os.path.join(target, "README.zh-CN.md")
     if os.path.exists(zh_readme):
         os.remove(zh_readme)
@@ -169,6 +181,114 @@ See [okf-memex](https://git.woa.com/yjzhuang/okf-memex) for framework documentat
     print(f"  5. Open {target} as Obsidian vault")
     print(f"  6. Add sources to raw/ and tell Box to ingest")
     sys.exit(0)
+
+
+def cmd_update(args):
+    """Update scaffold files in an existing wiki from template."""
+    target = os.path.abspath(args.target)
+
+    if not os.path.isdir(target):
+        print(f"Error: {target} is not a directory.")
+        sys.exit(1)
+
+    # Verify it looks like a wiki (has wiki/ and scripts/)
+    if not os.path.isdir(os.path.join(target, "wiki")):
+        print(f"Error: {target} does not appear to be a wiki (no wiki/ directory).")
+        sys.exit(1)
+
+    print(f"Updating scaffold files in: {target}")
+    print(f"Template source: {TEMPLATE_ROOT}")
+    print()
+
+    updated = []
+    skipped = []
+    missing = []
+
+    for rel_path in SCAFFOLD_FILES:
+        src = os.path.join(TEMPLATE_ROOT, rel_path)
+        dst = os.path.join(target, rel_path)
+
+        if not os.path.exists(src):
+            missing.append(rel_path)
+            continue
+
+        # Ensure parent directory exists
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+
+        # Compare hashes
+        src_hash = file_hash(src)
+        dst_hash = file_hash(dst)
+
+        if src_hash == dst_hash:
+            skipped.append(rel_path)
+        else:
+            shutil.copy2(src, dst)
+            updated.append(rel_path)
+
+    # Also copy init_wiki.py itself (so update can be run again from the wiki)
+    init_src = os.path.join(TEMPLATE_ROOT, "scripts", "init_wiki.py")
+    init_dst = os.path.join(target, "scripts", "init_wiki.py")
+    if os.path.exists(init_src) and file_hash(init_src) != file_hash(init_dst):
+        shutil.copy2(init_src, init_dst)
+        updated.append("scripts/init_wiki.py")
+
+    # Report
+    if updated:
+        print(f"Updated ({len(updated)}):")
+        for f in updated:
+            print(f"  ✓ {f}")
+        print()
+
+    if skipped:
+        print(f"Already up to date ({len(skipped)}):")
+        for f in skipped:
+            print(f"  = {f}")
+        print()
+
+    if missing:
+        print(f"Not in template ({len(missing)}):")
+        for f in missing:
+            print(f"  ? {f}")
+        print()
+
+    if not updated:
+        print("✓ All scaffold files are already up to date.")
+        sys.exit(0)
+    else:
+        print(f"✓ {len(updated)} file(s) updated. Review changes and commit.")
+        print()
+        print("Next steps:")
+        print(f"  cd {target}")
+        print(f"  git diff                          # review changes")
+        print(f"  git add -A && git commit -m 'Update scaffold from okf-memex template'")
+        sys.exit(0)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Scaffold and update OKF LLM Wikis from okf-memex template."
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # create subcommand
+    create_parser = subparsers.add_parser("create", help="Create a new wiki from template")
+    create_parser.add_argument("target", help="Target directory path for the new wiki")
+    create_parser.add_argument("--topic", default="My Wiki", help="Wiki topic/name (default: My Wiki)")
+    create_parser.add_argument("--author", default="", help="Author name (deprecated, kept for compat)")
+
+    # update subcommand
+    update_parser = subparsers.add_parser("update", help="Update scaffold files in an existing wiki")
+    update_parser.add_argument("target", help="Target wiki directory to update")
+
+    args = parser.parse_args()
+
+    if args.command == "create":
+        cmd_create(args)
+    elif args.command == "update":
+        cmd_update(args)
+    else:
+        parser.print_help()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
