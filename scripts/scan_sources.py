@@ -66,8 +66,13 @@ def get_ingested_sources(wiki_dir):
         except Exception:
             continue
 
-        # Look for "Original file:" or "raw/" references in body
+        # Look for "Original file: `raw/...`" or "raw/..." references in body
         for match in re.finditer(r"(?:raw/|Original file:\s*`)([^\s`)]+)", content):
+            raw_path = match.group(1).strip()
+            ingested.add(raw_path)
+
+        # Also match "Original file: `raw/...`" with spaces in filename
+        for match in re.finditer(r"Original file:\s*`(raw/[^\n`]+)`", content):
             raw_path = match.group(1).strip()
             ingested.add(raw_path)
 
