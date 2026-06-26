@@ -85,6 +85,8 @@ def cmd_create(args):
         dir_path = os.path.join(target, "raw", d)
         if os.path.exists(dir_path):
             for item in os.listdir(dir_path):
+                if item == ".gitkeep":
+                    continue
                 item_path = os.path.join(dir_path, item)
                 if os.path.isfile(item_path):
                     os.remove(item_path)
