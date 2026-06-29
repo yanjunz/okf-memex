@@ -138,7 +138,7 @@ okf-memex/                    # Template repository
 │   ├── parse_log.py          #   Display recent log entries
 │   ├── scan_sources.py       #   Scan raw/ for unprocessed sources
 │   └── auto_toggle.py        #   Toggle automation switches
-├── raw/                      # Immutable source documents (template dirs)
+├── raw/                      # Immutable source documents (see "Raw Directory Conventions" below)
 │   ├── web/  papers/  videos/  books/  code/  podcasts/  notes/
 │   └── assets/
 ├── wiki/                     # OKF Bundle (empty template)
@@ -151,6 +151,33 @@ okf-memex/                    # Template repository
 │   └── synthesis/            #   type: Synthesis
 └── .gitignore
 ```
+
+## Raw Directory Conventions
+
+`raw/` is the immutable source layer — Box reads but never writes. Files are sorted into fixed subdirectories by content type; `scan_sources.py` only scans the seven subdirs below.
+
+| Subdir | What goes here | Typical extensions |
+|---|---|---|
+| `web/` | Web Clipper output, saved articles/blog posts (HTML rendered to Markdown). `wiki/Clippings/` symlinks here. | `.md`, `.html` |
+| `papers/` | Academic papers, technical reports, whitepapers. PDF primary; `.md` extraction alongside if needed. | `.pdf`, `.md` |
+| `videos/` | Video transcripts, subtitles, lecture notes. **Don't store raw video files** (size). | `.md`, `.txt`, `.srt` |
+| `books/` | Book chapters, highlights, ebooks. | `.epub`, `.pdf`, `.md` |
+| `code/` | Notable code snippets, Jupyter notebooks, gists. **NOT entire repos** — link to GitHub from a Source page instead. | `.ipynb`, `.md`, `.py`, `.ts`, etc. |
+| `podcasts/` | Podcast transcripts, episode notes. **Don't store audio files**. | `.md`, `.txt` |
+| `notes/` | Personal notes: meeting notes, conversation summaries, hand-authored memos. Anything that doesn't fit above. | `.md`, `.txt` |
+| `assets/` | Images and supporting files referenced by other sources (e.g. clipper screenshots). **Not scanned by `scan_sources.py`** — these are not standalone sources. | `.png`, `.jpg`, `.svg`, etc. |
+
+**Naming**
+
+- Path format: `raw/<type>/<kebab-case-slug>.<ext>` — e.g. `raw/papers/attention-is-all-you-need.pdf`
+- Use kebab-case slugs and keep them stable (Source page IDs derive from these; renaming breaks references)
+- Companion files share the base name: `raw/videos/lecture-01.mp4` + `raw/videos/lecture-01.md`
+
+**Rules**
+
+- Only the seven subdirs above are scanned; files placed at `raw/` root are ignored
+- Scannable extensions: `.md`, `.pdf`, `.txt`, `.html`, `.epub`, `.ipynb` — other types need a `.md` companion
+- **Never modify files under `raw/`** — annotations and summaries live in `wiki/sources/<slug>.md`
 
 ## Obsidian Integration
 

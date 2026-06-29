@@ -138,7 +138,7 @@ okf-memex/                    # 模板仓库
 │   ├── parse_log.py          #   显示最近日志条目
 │   ├── scan_sources.py       #   扫描 raw/ 中未处理的源
 │   └── auto_toggle.py        #   自动化开关控制
-├── raw/                      # 不可变原始资源（模板目录）
+├── raw/                      # 不可变原始资源（模板目录，详见下文 "Raw 目录约定"）
 │   ├── web/  papers/  videos/  books/  code/  podcasts/  notes/
 │   └── assets/
 ├── wiki/                     # OKF Bundle（空模板）
@@ -151,6 +151,33 @@ okf-memex/                    # 模板仓库
 │   └── synthesis/            #   type: Synthesis
 └── .gitignore
 ```
+
+## Raw 目录约定
+
+`raw/` 是不可变的源文档层 —— Box 只读，所有摘要和分析都写入 `wiki/`。文件按内容类型分到固定子目录，`scan_sources.py` 仅扫描下表七个子目录。
+
+| 子目录 | 存放内容 | 常用扩展名 |
+|---|---|---|
+| `web/` | Obsidian Web Clipper 剪藏的网页、博客文章（HTML 渲染为 Markdown）。`wiki/Clippings/` 通过符号链接指向此处。 | `.md`、`.html` |
+| `papers/` | 学术论文、技术报告、白皮书。优先 PDF，必要时附带同名 `.md` 提取版。 | `.pdf`、`.md` |
+| `videos/` | 视频字幕、文字稿、讲座笔记。**不要存原视频文件**（体积过大）。 | `.md`、`.txt`、`.srt` |
+| `books/` | 电子书、章节高亮、阅读笔记。 | `.epub`、`.pdf`、`.md` |
+| `code/` | 关键代码片段、Jupyter notebook、gist。**不要存整个仓库** —— 在 Source 页面里链接到 GitHub 即可。 | `.ipynb`、`.md`、`.py`、`.ts` 等 |
+| `podcasts/` | 播客文字稿、节目笔记。**不要存音频文件**。 | `.md`、`.txt` |
+| `notes/` | 个人笔记：会议纪要、对话总结、手写备忘。不属于以上类别的内容。 | `.md`、`.txt` |
+| `assets/` | 图片和被其他源引用的支撑文件（如剪藏截图）。**不会被 `scan_sources.py` 当作独立源扫描**。 | `.png`、`.jpg`、`.svg` 等 |
+
+**命名约定**
+
+- 路径格式：`raw/<类型>/<kebab-case-slug>.<扩展名>` —— 例如 `raw/papers/attention-is-all-you-need.pdf`
+- Slug 用 kebab-case，且要稳定（Source 页面的 ID 由此派生，改名会破坏引用）
+- 衍生文件与原文件同名放在一起，例如 `raw/videos/lecture-01.mp4` 配 `raw/videos/lecture-01.md`
+
+**规则**
+
+- 只有上表七个子目录会被扫描；放在 `raw/` 根下的文件会被忽略
+- 可被摄入的扩展名：`.md`、`.pdf`、`.txt`、`.html`、`.epub`、`.ipynb` —— 其它类型需要配一个 `.md` 同名说明
+- **永远不要修改 `raw/` 下的文件** —— 摘要、批注、标签全部写到 `wiki/sources/<slug>.md`
 
 ## Obsidian 集成
 

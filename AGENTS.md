@@ -311,10 +311,32 @@ When the user asks to lint the wiki:
 - Concept IDs = file path without `.md`: `concepts/self-attention`.
 - Slugs should be descriptive and stable. Never rename without updating all references.
 
-### 7.2 Raw source naming
+### 7.2 Raw source organization
+
+**Naming**
 
 - `raw/<type>/<descriptive-slug>.<ext>` — e.g. `raw/papers/attention-is-all-you-need.pdf`.
-- Markdown extractions (e.g. video subtitles) go alongside: `raw/videos/lecture-01.md`.
+- Use kebab-case slugs; keep stable (Source page IDs derive from these).
+- Markdown extractions (e.g. video subtitles) go alongside the original: `raw/videos/lecture-01.mp4` + `raw/videos/lecture-01.md`.
+
+**Subdirectory contents**
+
+| Subdir | What goes here | Typical extensions |
+|---|---|---|
+| `web/` | Web Clipper output, saved articles/blog posts (HTML pages rendered to Markdown). Wiki's `Clippings/` symlinks here. | `.md`, `.html` |
+| `papers/` | Academic papers, technical reports, whitepapers. PDF primary; `.md` extraction alongside if needed. | `.pdf`, `.md` |
+| `videos/` | Video transcripts, subtitles, lecture notes. Avoid storing raw video files (size). | `.md`, `.txt`, `.srt` |
+| `books/` | Book chapters, highlights, ebooks. | `.epub`, `.pdf`, `.md` |
+| `code/` | Notable code snippets, Jupyter notebooks, gists. NOT entire repos — link to GitHub from a Source page instead. | `.ipynb`, `.md`, `.py`, `.ts` (etc.) |
+| `podcasts/` | Podcast transcripts, episode notes. Avoid storing audio files. | `.md`, `.txt` |
+| `notes/` | Personal notes: meeting notes, conversation summaries, hand-authored memos. Anything that doesn't fit the categories above. | `.md`, `.txt` |
+| `assets/` | Images and supporting files referenced by other sources (e.g. clipper screenshots). NOT scanned by `scan_sources.py` — these are not standalone sources. | `.png`, `.jpg`, `.svg`, etc. |
+
+**Rules**
+
+- Only the seven subdirs above are scanned for ingestion (`scan_sources.py:27`); files placed at `raw/` root are ignored.
+- Source extensions that get scanned: `.md`, `.pdf`, `.txt`, `.html`, `.epub`, `.ipynb`. Other types must be referenced from a `.md` companion.
+- Never modify files under `raw/` — they are the immutable source of truth. Annotations and summaries live in `wiki/sources/<slug>.md`.
 
 ### 7.3 Tags
 
