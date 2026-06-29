@@ -4,12 +4,13 @@
 
 ## Current Best
 
-- round: `001-baseline`
-- skill-commit: `701746f654d6`
+- round: `002-batch-index-update`
+- skill-commit: `2ab29ad44dec`
 
 ## Rounds
 
 - `001-baseline` kind=baseline user-confirmation=accepted
+- `002-batch-index-update` kind=iter user-confirmation=accepted
 
 ## Criteria History
 
