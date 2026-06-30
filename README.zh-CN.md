@@ -162,7 +162,7 @@ okf-memex/                    # 模板仓库
 | `papers/` | 学术论文、技术报告、白皮书。优先 PDF，必要时附带同名 `.md` 提取版。 | `.pdf`、`.md` |
 | `videos/` | 视频字幕、文字稿、讲座笔记。**不要存原视频文件**（体积过大）。 | `.md`、`.txt`、`.srt` |
 | `books/` | 电子书、章节高亮、阅读笔记。 | `.epub`、`.pdf`、`.md` |
-| `code/` | 关键代码片段、Jupyter notebook、gist。**不要存整个仓库** —— 在 Source 页面里链接到 GitHub 即可。 | `.ipynb`、`.md`、`.py`、`.ts` 等 |
+| `code/` | 代码片段、notebook、gist，或需要锁版本的小项目源码。详见下方「代码存放模式」。 | `.ipynb`、`.md`、`.py`、`.ts` 等 |
 | `podcasts/` | 播客文字稿、节目笔记。**不要存音频文件**。 | `.md`、`.txt` |
 | `notes/` | 个人笔记：会议纪要、对话总结、手写备忘。不属于以上类别的内容。 | `.md`、`.txt` |
 | `assets/` | 图片和被其他源引用的支撑文件（如剪藏截图）。**不会被 `scan_sources.py` 当作独立源扫描**。 | `.png`、`.jpg`、`.svg` 等 |
@@ -172,6 +172,25 @@ okf-memex/                    # 模板仓库
 - 路径格式：`raw/<类型>/<kebab-case-slug>.<扩展名>` —— 例如 `raw/papers/attention-is-all-you-need.pdf`
 - Slug 用 kebab-case，且要稳定（Source 页面的 ID 由此派生，改名会破坏引用）
 - 衍生文件与原文件同名放在一起，例如 `raw/videos/lecture-01.mp4` 配 `raw/videos/lecture-01.md`
+
+**多级子目录**
+
+- 任何子目录下都**支持嵌套**（`scan_sources.py` 用 `**/*` 递归扫描）。适合做自然分组：`raw/papers/<topic>/<slug>.pdf`、`raw/videos/<系列>/<集>.md`、`raw/code/<项目>/<文件>`
+- 两层（`raw/<类型>/<分组>/<文件>`）是甜区，三层及以上就难记了
+- `wiki/sources/` 本身保持平铺 —— 用 slug 前缀消歧（`wiki/sources/karpathy-micrograd.md`），不要用嵌套目录
+- frontmatter 的 `resource:` 字段要写完整路径：`resource: raw/videos/karpathy/zero-to-hero/01-micrograd.md`
+
+**代码存放模式**
+
+`raw/code/` 三种 pattern，按意图选：
+
+| 意图 | 放法 | 例子 |
+|---|---|---|
+| 单文件片段 / notebook / gist | 平铺单文件 | `raw/code/attention-impl.py`、`raw/code/rl-from-scratch.ipynb` |
+| 锁定小项目某版本供深入研读 | 子目录 + 同名 `.md` 说明文件 | `raw/code/nanogpt/`（源码）+ `raw/code/nanogpt.md`（upstream URL、commit SHA、为什么锁这版） |
+| 引用活跃维护的大仓库 | 不存本地 —— 只建 Source 页面 | `wiki/sources/transformers-lib.md` 里 `resource: https://github.com/huggingface/transformers` |
+
+子目录方案中，**`.md` 说明文件是入口 Source** —— 建一个 `wiki/sources/<slug>.md`，`resource:` 指向目录（`resource: raw/code/nanogpt/`），在 Source 页面 body 里列出关键代码文件路径。目录里的 `.py`/`.ts` 文件会被扫到但视为伴随文件，不需要为它们各自建 Source。
 
 **规则**
 

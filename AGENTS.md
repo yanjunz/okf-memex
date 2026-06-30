@@ -327,10 +327,29 @@ When the user asks to lint the wiki:
 | `papers/` | Academic papers, technical reports, whitepapers. PDF primary; `.md` extraction alongside if needed. | `.pdf`, `.md` |
 | `videos/` | Video transcripts, subtitles, lecture notes. Avoid storing raw video files (size). | `.md`, `.txt`, `.srt` |
 | `books/` | Book chapters, highlights, ebooks. | `.epub`, `.pdf`, `.md` |
-| `code/` | Notable code snippets, Jupyter notebooks, gists. NOT entire repos — link to GitHub from a Source page instead. | `.ipynb`, `.md`, `.py`, `.ts` (etc.) |
+| `code/` | Code snippets, notebooks, gists, or small project trees worth version-locking. See **Code patterns** below. | `.ipynb`, `.md`, `.py`, `.ts` (etc.) |
 | `podcasts/` | Podcast transcripts, episode notes. Avoid storing audio files. | `.md`, `.txt` |
 | `notes/` | Personal notes: meeting notes, conversation summaries, hand-authored memos. Anything that doesn't fit the categories above. | `.md`, `.txt` |
 | `assets/` | Images and supporting files referenced by other sources (e.g. clipper screenshots). NOT scanned by `scan_sources.py` — these are not standalone sources. | `.png`, `.jpg`, `.svg`, etc. |
+
+**Nested subdirectories**
+
+- Multi-level paths under any subdir are supported (`scan_sources.py` recursively globs `**/*`). Use for natural grouping: `raw/papers/<topic>/<slug>.pdf`, `raw/videos/<series>/<ep>.md`, `raw/code/<project>/<file>`.
+- Two levels (`raw/<type>/<group>/<file>`) is the sweet spot. Three+ levels become hard to remember.
+- `wiki/sources/` itself stays flat — disambiguate with slug prefixes (`wiki/sources/karpathy-micrograd.md`), not nested directories.
+- The `resource:` frontmatter field must record the full path: `resource: raw/videos/karpathy/zero-to-hero/01-micrograd.md`.
+
+**Code patterns**
+
+Three patterns for `raw/code/`, pick by intent:
+
+| Intent | Pattern | Example |
+|---|---|---|
+| Single snippet / notebook / gist | Flat file | `raw/code/attention-impl.py`, `raw/code/rl-from-scratch.ipynb` |
+| Version-lock a small project for study | Subdirectory + companion `.md` entry | `raw/code/nanogpt/` (source files) + `raw/code/nanogpt.md` (upstream URL, commit SHA, why pinned) |
+| Reference a live large repo | No raw file — Source page only | `wiki/sources/transformers-lib.md` with `resource: https://github.com/huggingface/transformers` |
+
+For the subdirectory pattern: the **`.md` entry file is the canonical Source**. Create one `wiki/sources/<slug>.md` whose `resource:` points to the directory (`resource: raw/code/nanogpt/`); list the key code files inside that Source page's body. The scanner will see `.py`/`.ts` files inside the dir but they are companion files, not standalone sources.
 
 **Rules**
 
