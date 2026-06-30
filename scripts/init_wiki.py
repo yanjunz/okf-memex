@@ -2,14 +2,18 @@
 """Scaffold and update OKF-compliant LLM Wikis from the okf-memex template.
 
 Usage:
-    # Create a new wiki
+    # Create a new wiki (default bundle dir: wiki/)
     python init_wiki.py create <target_dir> --topic "主题名称"
+
+    # Create with a custom bundle dir name (useful for multi-wiki Obsidian setups)
+    python init_wiki.py create <target_dir> --topic "..." --bundle-name yjzhuang
 
     # Update an existing wiki's scaffold files from template
     python init_wiki.py update <target_dir>
 
 Examples:
     python init_wiki.py create ~/Documents/my-llm-wiki --topic "LLM技术"
+    python init_wiki.py create ~/yjzhuang-wiki --topic "..." --bundle-name yjzhuang
     python init_wiki.py update ~/Documents/my-llm-wiki
 
 Exit codes:
@@ -24,8 +28,11 @@ import argparse
 import hashlib
 from datetime import datetime, timezone, timedelta
 
-
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
+from okf_paths import DEFAULT_BUNDLE, get_bundle_name, write_config  # noqa: E402
+
+
 TEMPLATE_ROOT = os.path.dirname(SCRIPT_DIR)  # okf-memex/ root
 
 # Files synced by `update` — scaffold only, never touch content
@@ -37,6 +44,8 @@ SCAFFOLD_FILES = [
     "scripts/gen_index.py",
     "scripts/parse_log.py",
     "scripts/scan_sources.py",
+    "scripts/auto_toggle.py",
+    "scripts/okf_paths.py",
 ]
 
 
@@ -53,6 +62,10 @@ def cmd_create(args):
     """Create a new wiki from template."""
     target = os.path.abspath(args.target)
     topic = args.topic
+    bundle_name = (args.bundle_name or DEFAULT_BUNDLE).strip()
+    if not bundle_name or "/" in bundle_name or bundle_name.startswith("."):
+        print(f"Error: invalid --bundle-name '{bundle_name}'. Use a plain directory name.")
+        sys.exit(1)
 
     if os.path.exists(target):
         print(f"Error: {target} already exists. Choose a new directory.")
@@ -60,17 +73,30 @@ def cmd_create(args):
 
     print(f"Scaffolding wiki: {topic}")
     print(f"Target: {target}")
+    if bundle_name != DEFAULT_BUNDLE:
+        print(f"Bundle dir: {bundle_name}/ (custom, recorded in .okf-config.json)")
     print()
 
     # Copy template structure
+    # Excluded: template-management artifacts (skill-creator state, Claude Code local
+    # config, skill-learning history) that have no meaning in a user's personal wiki.
     shutil.copytree(TEMPLATE_ROOT, target, ignore=shutil.ignore_patterns(
-        ".git", ".thumbs", "__pycache__", ".DS_Store", "*.pyc"
+        ".git", ".thumbs", "__pycache__", ".DS_Store", "*.pyc",
+        ".skill-creator", ".claude", "skill", "HL",
     ))
 
-    # Clean demo content from wiki/
-    wiki_dirs = ["entities", "concepts", "sources", "synthesis"]
-    for d in wiki_dirs:
-        dir_path = os.path.join(target, "wiki", d)
+    # Rename bundle dir if user picked a custom name
+    if bundle_name != DEFAULT_BUNDLE:
+        os.rename(
+            os.path.join(target, DEFAULT_BUNDLE),
+            os.path.join(target, bundle_name),
+        )
+        write_config(target, bundle_name)
+
+    # Clean demo content from bundle subdirs
+    bundle_subdirs = ["entities", "concepts", "sources", "synthesis"]
+    for d in bundle_subdirs:
+        dir_path = os.path.join(target, bundle_name, d)
         for item in os.listdir(dir_path):
             if item != ".gitkeep":
                 item_path = os.path.join(dir_path, item)
@@ -94,7 +120,7 @@ def cmd_create(args):
                     shutil.rmtree(item_path)
 
     # Write fresh index.md
-    index_path = os.path.join(target, "wiki", "index.md")
+    index_path = os.path.join(target, bundle_name, "index.md")
     with open(index_path, "w", encoding="utf-8") as f:
         f.write("""---
 okf_version: "0.1"
@@ -121,7 +147,7 @@ okf_version: "0.1"
 
     # Write fresh log.md
     now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
-    log_path = os.path.join(target, "wiki", "log.md")
+    log_path = os.path.join(target, bundle_name, "log.md")
     with open(log_path, "w", encoding="utf-8") as f:
         f.write(f"""# Wiki Update Log
 
@@ -148,11 +174,12 @@ okf_version: "0.1"
 ## CLI Tools
 
 ```bash
-python scripts/okf_check.py wiki/     # OKF 合规检查
-python scripts/link_check.py wiki/    # 断链 + 孤儿页检测
-python scripts/gen_index.py wiki/     # 重新生成 index.md
-python scripts/parse_log.py wiki/ 10  # 查看最近日志
-python scripts/scan_sources.py wiki/ raw/  # 扫描未处理源
+# 不传路径时自动从 .okf-config.json 解析 bundle 目录
+python scripts/okf_check.py        # OKF 合规检查
+python scripts/link_check.py       # 断链 + 孤儿页检测
+python scripts/gen_index.py        # 重新生成 index.md
+python scripts/parse_log.py 10     # 查看最近 10 条日志
+python scripts/scan_sources.py     # 扫描未处理源
 ```
 
 ## Structure
@@ -165,29 +192,37 @@ See [okf-memex](https://git.woa.com/yjzhuang/okf-memex) for framework documentat
     if os.path.exists(zh_readme):
         os.remove(zh_readme)
 
+    # Remove SKILL.md — it's the okf-memex skill definition for skill-creator,
+    # not relevant to a personal wiki repo.
+    skill_md = os.path.join(target, "SKILL.md")
+    if os.path.exists(skill_md):
+        os.remove(skill_md)
+
     # Remove init_wiki.py from personal copy (it's a template tool)
     init_script = os.path.join(target, "scripts", "init_wiki.py")
     if os.path.exists(init_script):
         os.remove(init_script)
 
-    # Create symlink: wiki/Clippings → ../raw/web
+    # Create symlink: <bundle>/Clippings → ../raw/web
     # Lets Obsidian Web Clipper save directly into raw/web/ from the vault
-    clippings_link = os.path.join(target, "wiki", "Clippings")
+    clippings_link = os.path.join(target, bundle_name, "Clippings")
     if not os.path.exists(clippings_link):
         os.symlink("../raw/web", clippings_link)
 
     print("✓ Directory structure created")
     print("✓ Demo content cleared")
-    print("✓ Symlink created: wiki/Clippings → ../raw/web (for Obsidian Web Clipper)")
+    print(f"✓ Symlink created: {bundle_name}/Clippings → ../raw/web (for Obsidian Web Clipper)")
     print("✓ Fresh index.md and log.md generated")
     print("✓ README.md written")
+    if bundle_name != DEFAULT_BUNDLE:
+        print(f"✓ .okf-config.json written (bundle: {bundle_name})")
     print()
     print("Next steps:")
     print(f"  1. cd {target}")
     print(f"  2. git init && git add -A && git commit -m 'init: {topic}'")
     print(f"  3. git remote add origin <your-repo-url>")
     print(f"  4. git push -u origin main")
-    print(f"  5. Open {target} as Obsidian vault")
+    print(f"  5. Open {target}/{bundle_name}/ as Obsidian vault")
     print(f"  6. Add sources to raw/ and tell Box to ingest")
     sys.exit(0)
 
@@ -200,12 +235,13 @@ def cmd_update(args):
         print(f"Error: {target} is not a directory.")
         sys.exit(1)
 
-    # Verify it looks like a wiki (has wiki/ and scripts/)
-    if not os.path.isdir(os.path.join(target, "wiki")):
-        print(f"Error: {target} does not appear to be a wiki (no wiki/ directory).")
+    bundle_name = get_bundle_name(target)
+    if not os.path.isdir(os.path.join(target, bundle_name)):
+        print(f"Error: {target} does not appear to be a wiki (no {bundle_name}/ directory).")
         sys.exit(1)
 
     print(f"Updating scaffold files in: {target}")
+    print(f"Bundle dir: {bundle_name}/")
     print(f"Template source: {TEMPLATE_ROOT}")
     print()
 
@@ -241,11 +277,11 @@ def cmd_update(args):
         shutil.copy2(init_src, init_dst)
         updated.append("scripts/init_wiki.py")
 
-    # Ensure symlink exists: wiki/Clippings → ../raw/web
-    clippings_link = os.path.join(target, "wiki", "Clippings")
+    # Ensure symlink exists: <bundle>/Clippings → ../raw/web
+    clippings_link = os.path.join(target, bundle_name, "Clippings")
     if not os.path.exists(clippings_link):
         os.symlink("../raw/web", clippings_link)
-        updated.append("wiki/Clippings (symlink)")
+        updated.append(f"{bundle_name}/Clippings (symlink)")
 
     # Report
     if updated:
@@ -289,6 +325,9 @@ def main():
     create_parser = subparsers.add_parser("create", help="Create a new wiki from template")
     create_parser.add_argument("target", help="Target directory path for the new wiki")
     create_parser.add_argument("--topic", default="My Wiki", help="Wiki topic/name (default: My Wiki)")
+    create_parser.add_argument("--bundle-name", default=DEFAULT_BUNDLE,
+                               help=f"Bundle directory name (default: {DEFAULT_BUNDLE}). "
+                                    "Use a distinct name (e.g. 'yjzhuang') to make multi-wiki Obsidian vaults easy to tell apart.")
     create_parser.add_argument("--author", default="", help="Author name (deprecated, kept for compat)")
 
     # update subcommand

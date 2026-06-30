@@ -9,7 +9,11 @@ Log format (per OKF §7):
     * **Action**: Description.
 
 Usage:
-    python parse_log.py <wiki_dir> [N]
+    python parse_log.py [wiki_dir] [N]
+
+    wiki_dir is optional — if omitted, the bundle is resolved from
+    .okf-config.json or the default wiki/ directory by walking up from CWD.
+    `python parse_log.py 5` is treated as N=5 (auto-resolve wiki_dir).
 
 Exit codes:
     0 — success
@@ -21,6 +25,9 @@ import os
 import re
 import glob
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from okf_paths import resolve_bundle  # noqa: E402
 
 
 DATE_RE = re.compile(r"^## (\d{4}-\d{2}-\d{2})")
@@ -51,15 +58,26 @@ def parse_log(content):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python parse_log.py <wiki_dir> [N]")
-        sys.exit(1)
+    args = sys.argv[1:]
+    explicit = None
+    n = 10
 
-    wiki_dir = sys.argv[1]
-    n = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+    # Treat a bare integer as N (auto-resolve wiki_dir); otherwise first arg is wiki_dir
+    if args and not args[0].isdigit():
+        explicit = args[0]
+        args = args[1:]
+    if args:
+        try:
+            n = int(args[0])
+        except ValueError:
+            print(f"Error: '{args[0]}' is not a valid integer for N")
+            sys.exit(1)
 
-    if not os.path.isdir(wiki_dir):
-        print(f"Error: {wiki_dir} is not a directory")
+    _, wiki_dir = resolve_bundle(explicit)
+    if wiki_dir is None:
+        print("Error: could not locate bundle directory.")
+        print("Pass it explicitly: python parse_log.py <wiki_dir> [N]")
+        print("Or run from inside an OKF repo (contains .okf-config.json or wiki/).")
         sys.exit(1)
 
     # Find all log.md files in the bundle

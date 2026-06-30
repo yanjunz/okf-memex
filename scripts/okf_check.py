@@ -9,7 +9,10 @@ Reserved filenames (index.md, log.md) are checked for structure but
 do not require frontmatter (except root index.md which MAY declare okf_version).
 
 Usage:
-    python okf_check.py <wiki_dir>
+    python okf_check.py [wiki_dir]
+
+    wiki_dir is optional — if omitted, the bundle is resolved from
+    .okf-config.json or the default wiki/ directory by walking up from CWD.
 
 Exit codes:
     0 — all checks passed
@@ -20,6 +23,9 @@ import sys
 import os
 import re
 import glob
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from okf_paths import resolve_bundle  # noqa: E402
 
 
 RESERVED_FILES = {"index.md", "log.md"}
@@ -107,13 +113,12 @@ def check_file(filepath, rel_path, violations):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python okf_check.py <wiki_dir>")
-        sys.exit(1)
-
-    wiki_dir = sys.argv[1]
-    if not os.path.isdir(wiki_dir):
-        print(f"Error: {wiki_dir} is not a directory")
+    explicit = sys.argv[1] if len(sys.argv) > 1 else None
+    _, wiki_dir = resolve_bundle(explicit)
+    if wiki_dir is None:
+        print("Error: could not locate bundle directory.")
+        print("Pass it explicitly: python okf_check.py <wiki_dir>")
+        print("Or run from inside an OKF repo (contains .okf-config.json or wiki/).")
         sys.exit(1)
 
     violations = []

@@ -2,11 +2,12 @@
 """Toggle automation switches for the wiki.
 
 Usage:
-    python auto_toggle.py <wiki_root> ingest on     # Enable auto-ingest
-    python auto_toggle.py <wiki_root> ingest off    # Disable auto-ingest
-    python auto_toggle.py <wiki_root> lint on       # Enable auto-lint
-    python auto_toggle.py <wiki_root> lint off      # Disable auto-lint
-    python auto_toggle.py <wiki_root> status        # Show current status
+    python auto_toggle.py ingest on               # Enable auto-ingest (auto-resolve repo root)
+    python auto_toggle.py <wiki_root> ingest on   # Enable, explicit repo root
+    python auto_toggle.py lint on                 # Enable auto-lint
+    python auto_toggle.py status                  # Show current status
+
+    wiki_root is optional — auto-resolved from .okf-config.json by walking up from CWD.
 
 Exit codes:
     0 — success
@@ -16,6 +17,9 @@ Exit codes:
 import sys
 import os
 import json
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from okf_paths import find_repo_root  # noqa: E402
 
 
 CONFIG_FILENAME = ".automation.json"
@@ -54,8 +58,24 @@ def save_config(wiki_root, config):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python auto_toggle.py <wiki_root> <ingest|lint|status> [on|off]")
+    args = sys.argv[1:]
+    ACTIONS = {"ingest", "lint", "status"}
+
+    # First arg may be wiki_root or an action — disambiguate
+    if args and args[0] in ACTIONS:
+        wiki_root = find_repo_root()
+        if wiki_root is None:
+            print("Error: could not locate repo root.")
+            print("Pass it explicitly: python auto_toggle.py <wiki_root> <ingest|lint|status> [on|off]")
+            sys.exit(1)
+    elif args:
+        wiki_root = os.path.abspath(args[0])
+        args = args[1:]
+        if not os.path.isdir(wiki_root):
+            print(f"Error: {wiki_root} is not a directory")
+            sys.exit(1)
+    else:
+        print("Usage: python auto_toggle.py [wiki_root] <ingest|lint|status> [on|off]")
         print()
         print("Commands:")
         print("  ingest on   — Enable automatic source ingestion")
@@ -65,12 +85,11 @@ def main():
         print("  status      — Show current automation status")
         sys.exit(1)
 
-    wiki_root = os.path.abspath(sys.argv[1])
-    action = sys.argv[2]
-
-    if not os.path.isdir(wiki_root):
-        print(f"Error: {wiki_root} is not a directory")
+    if not args:
+        print("Error: missing action (ingest|lint|status)")
         sys.exit(1)
+    action = args[0]
+    args = args[1:]
 
     config = load_config(wiki_root)
 
@@ -91,12 +110,12 @@ def main():
         print(f"Error: unknown action '{action}'. Use: ingest, lint, or status")
         sys.exit(1)
 
-    if len(sys.argv) < 4 or sys.argv[3] not in ("on", "off"):
+    if not args or args[0] not in ("on", "off"):
         print(f"Error: specify 'on' or 'off' for '{action}'")
         sys.exit(1)
 
     key = VALID_KEYS[action]
-    value = sys.argv[3] == "on"
+    value = args[0] == "on"
     config[key] = value
     save_config(wiki_root, config)
 

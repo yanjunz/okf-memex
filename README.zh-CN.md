@@ -14,8 +14,11 @@
 # 克隆模板
 git clone git@git.woa.com:yjzhuang/okf-memex.git
 
-# 从模板创建新 wiki
+# 从模板创建新 wiki（bundle 目录默认叫 wiki/）
 python okf-memex/scripts/init_wiki.py create ~/Documents/my-wiki --topic "LLM技术"
+
+# 如果有多个 wiki 想在 Obsidian 里区分，给 bundle 起个独特的名字：
+python okf-memex/scripts/init_wiki.py create ~/yjzhuang-wiki --topic "..." --bundle-name yjzhuang
 
 # 初始化为你自己的仓库
 cd ~/Documents/my-wiki
@@ -24,7 +27,7 @@ git remote add origin <你的仓库地址>
 git add -A && git commit -m "init: my wiki"
 git push -u origin main
 
-# 用 Obsidian 打开 wiki/ 目录作为 vault
+# 用 Obsidian 打开 bundle 目录（默认 wiki/，或你指定的 --bundle-name）作为 vault
 ```
 
 ### 更新脚手架文件
@@ -75,24 +78,29 @@ git add -A && git commit -m "Update scaffold from okf-memex template"
 
 所有脚本仅依赖标准 Python 3，无第三方库。
 
-```bash
-# 脚手架管理
-python scripts/init_wiki.py create <dir> --topic "..."   # 从模板创建新 wiki
-python scripts/init_wiki.py update <dir>                  # 同步脚手架文件到已有 wiki
+**所有维护脚本的路径参数都可省略** —— 在 wiki 仓库的任意位置运行，会自动向上找 `.okf-config.json` 解析 bundle 目录；找不到 config 时回退到默认 `wiki/`。
 
-# Wiki 维护
-python scripts/okf_check.py wiki/      # OKF v0.1 合规检查
-python scripts/link_check.py wiki/     # 断链 + 孤儿页检测
-python scripts/gen_index.py wiki/      # 从 frontmatter 重新生成 index.md
-python scripts/parse_log.py wiki/ 10   # 显示最近 10 条日志
+```bash
+# 脚手架管理（必须传 target）
+python scripts/init_wiki.py create <dir> --topic "..." [--bundle-name yjzhuang]
+python scripts/init_wiki.py update <dir>
+
+# Wiki 维护（在仓库内直接运行，无需传路径）
+python scripts/okf_check.py       # OKF v0.1 合规检查
+python scripts/link_check.py      # 断链 + 孤儿页检测
+python scripts/gen_index.py       # 从 frontmatter 重新生成 index.md
+python scripts/parse_log.py 10    # 显示最近 10 条日志
 
 # 自动化
-python scripts/scan_sources.py wiki/ raw/    # 扫描未处理的源文件
-python scripts/scan_sources.py wiki/ raw/ --json  # JSON 输出（供定时任务用）
-python scripts/auto_toggle.py <dir> ingest on     # 开启自动摄入
-python scripts/auto_toggle.py <dir> ingest off    # 关闭自动摄入（仅通知）
-python scripts/auto_toggle.py <dir> lint on       # 开启自动 Lint
-python scripts/auto_toggle.py <dir> status        # 查看自动化状态
+python scripts/scan_sources.py            # 扫描未处理的源文件
+python scripts/scan_sources.py --json     # JSON 输出（供定时任务用）
+python scripts/auto_toggle.py ingest on   # 开启自动摄入
+python scripts/auto_toggle.py ingest off  # 关闭自动摄入（仅通知）
+python scripts/auto_toggle.py lint on     # 开启自动 Lint
+python scripts/auto_toggle.py status      # 查看自动化状态
+
+# 如果想从仓库外运行，仍然可以显式传路径，向后兼容：
+python scripts/okf_check.py ~/yjzhuang-wiki/yjzhuang/
 ```
 
 ## 自动化
@@ -132,6 +140,7 @@ okf-memex/                    # 模板仓库
 ├── AGENTS.md                 # Schema 层：Box 操作手册
 ├── scripts/                  # CLI 工具
 │   ├── init_wiki.py          #   create / update wiki 脚手架
+│   ├── okf_paths.py          #   bundle 路径解析（被其他脚本复用）
 │   ├── okf_check.py          #   OKF v0.1 一致性校验
 │   ├── link_check.py         #   断链 & 孤儿页检测
 │   ├── gen_index.py          #   重新生成 index.md
@@ -141,7 +150,7 @@ okf-memex/                    # 模板仓库
 ├── raw/                      # 不可变原始资源（模板目录，详见下文 "Raw 目录约定"）
 │   ├── web/  papers/  videos/  books/  code/  podcasts/  notes/
 │   └── assets/
-├── wiki/                     # OKF Bundle（空模板）
+├── wiki/                     # OKF Bundle（空模板，可通过 --bundle-name 改名）
 │   ├── index.md              #   内容目录（OKF §6）
 │   ├── log.md                #   操作日志（OKF §7）
 │   ├── Clippings → ../raw/web  # 符号链接，供 Obsidian Web Clipper 使用
@@ -149,6 +158,7 @@ okf-memex/                    # 模板仓库
 │   ├── concepts/             #   type: Concept
 │   ├── sources/              #   type: Source
 │   └── synthesis/            #   type: Synthesis
+├── .okf-config.json          # 可选：自定义 bundle 名时由 init_wiki.py 写入
 └── .gitignore
 ```
 
@@ -197,6 +207,39 @@ okf-memex/                    # 模板仓库
 - 只有上表七个子目录会被扫描；放在 `raw/` 根下的文件会被忽略
 - 可被摄入的扩展名：`.md`、`.pdf`、`.txt`、`.html`、`.epub`、`.ipynb` —— 其它类型需要配一个 `.md` 同名说明
 - **永远不要修改 `raw/` 下的文件** —— 摘要、批注、标签全部写到 `wiki/sources/<slug>.md`
+
+## 多 Wiki 共存
+
+如果你维护多个独立的 wiki（比如 `~/yjzhuang-wiki/` 和 `~/home-wiki/`），用 Obsidian 同时打开它们的 `wiki/` 子目录时，**vault 名都是 "wiki" 难以区分**。Obsidian 把 vault 名锁定为 folder 名，rename 会改磁盘上的目录名，symlink 也会被 realpath 解开，无解。
+
+解决办法：**给每个 wiki 的 bundle 起独特的名字**。
+
+```bash
+# 创建时指定
+python scripts/init_wiki.py create ~/yjzhuang-wiki --topic "..." --bundle-name yjzhuang
+python scripts/init_wiki.py create ~/home-wiki --topic "..." --bundle-name home
+
+# 这样目录结构是：
+#   ~/yjzhuang-wiki/yjzhuang/   ← Obsidian 显示 "yjzhuang"
+#   ~/home-wiki/home/           ← Obsidian 显示 "home"
+```
+
+Bundle 名记录在仓库根的 `.okf-config.json` 里，所有脚本自动读取：
+
+```json
+{"bundle": "yjzhuang"}
+```
+
+**已有的 `wiki/` 仓库迁移**：
+
+```bash
+cd ~/yjzhuang-wiki
+mv wiki yjzhuang
+echo '{"bundle": "yjzhuang"}' > .okf-config.json
+git add -A && git commit -m "Rename bundle to yjzhuang for vault disambiguation"
+```
+
+`raw/`、`scripts/`、`AGENTS.md` 都不动，wiki 内部的 bundle-relative 链接（`/entities/xxx.md` 这种）也不受影响 —— 它们是相对于 bundle 根的，目录改名后语义不变。
 
 ## Obsidian 集成
 

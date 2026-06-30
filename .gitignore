@@ -26,4 +26,5 @@ venv/
 .obsidian/workspace*
 .obsidian/cache
 .thumbs/
-wiki/Clippings
+# Clippings symlink in the bundle dir (default wiki/, but may be renamed)
+*/Clippings

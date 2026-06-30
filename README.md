@@ -14,8 +14,11 @@ Inspired by [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6
 # Clone the template
 git clone git@git.woa.com:yjzhuang/okf-memex.git
 
-# Scaffold a new wiki
+# Scaffold a new wiki (bundle dir defaults to wiki/)
 python okf-memex/scripts/init_wiki.py create ~/Documents/my-wiki --topic "LLM技术"
+
+# For multi-wiki Obsidian setups, give the bundle a distinctive name:
+python okf-memex/scripts/init_wiki.py create ~/yjzhuang-wiki --topic "..." --bundle-name yjzhuang
 
 # Initialize as your own repo
 cd ~/Documents/my-wiki
@@ -24,7 +27,7 @@ git remote add origin <your-repo-url>
 git add -A && git commit -m "init: my wiki"
 git push -u origin main
 
-# Open wiki/ as Obsidian vault
+# Open the bundle dir (wiki/ by default, or your --bundle-name) as Obsidian vault
 ```
 
 ### Update Scaffold Files
@@ -75,24 +78,29 @@ git add -A && git commit -m "Update scaffold from okf-memex template"
 
 All scripts use standard Python 3 — no dependencies.
 
-```bash
-# Scaffold & update
-python scripts/init_wiki.py create <dir> --topic "..."   # Create new wiki from template
-python scripts/init_wiki.py update <dir>                  # Sync scaffold files to existing wiki
+**All maintenance scripts accept an optional path argument** — when omitted, they walk up from CWD looking for `.okf-config.json` to resolve the bundle directory (falls back to `wiki/`).
 
-# Wiki maintenance
-python scripts/okf_check.py wiki/      # OKF v0.1 合规检查
-python scripts/link_check.py wiki/     # 断链 + 孤儿页检测
-python scripts/gen_index.py wiki/      # 从 frontmatter 重新生成 index.md
-python scripts/parse_log.py wiki/ 10   # 显示最近 10 条日志
+```bash
+# Scaffold & update (target dir required)
+python scripts/init_wiki.py create <dir> --topic "..." [--bundle-name yjzhuang]
+python scripts/init_wiki.py update <dir>
+
+# Wiki maintenance (run from inside the repo, no path needed)
+python scripts/okf_check.py       # OKF v0.1 conformance
+python scripts/link_check.py      # broken links + orphans
+python scripts/gen_index.py       # regenerate index.md
+python scripts/parse_log.py 10    # show last 10 log entries
 
 # Automation
-python scripts/scan_sources.py wiki/ raw/    # 扫描未处理的源文件
-python scripts/scan_sources.py wiki/ raw/ --json  # JSON 输出（供定时任务用）
-python scripts/auto_toggle.py <dir> ingest on     # 开启自动摄入
-python scripts/auto_toggle.py <dir> ingest off    # 关闭自动摄入（仅通知）
-python scripts/auto_toggle.py <dir> lint on       # 开启自动 Lint
-python scripts/auto_toggle.py <dir> status        # 查看自动化状态
+python scripts/scan_sources.py            # scan raw/ for unprocessed sources
+python scripts/scan_sources.py --json     # JSON output (for cron)
+python scripts/auto_toggle.py ingest on   # enable auto-ingest
+python scripts/auto_toggle.py ingest off  # notification only
+python scripts/auto_toggle.py lint on     # enable weekly lint
+python scripts/auto_toggle.py status      # show automation status
+
+# Explicit paths still work for running from outside the repo:
+python scripts/okf_check.py ~/yjzhuang-wiki/yjzhuang/
 ```
 
 ## Automation
@@ -132,6 +140,7 @@ okf-memex/                    # Template repository
 ├── AGENTS.md                 # Schema: Box's operation manual
 ├── scripts/                  # CLI tools
 │   ├── init_wiki.py          #   create / update wiki scaffold
+│   ├── okf_paths.py          #   bundle path resolver (shared by other scripts)
 │   ├── okf_check.py          #   OKF v0.1 conformance checker
 │   ├── link_check.py         #   Broken link & orphan detector
 │   ├── gen_index.py          #   Regenerate index.md
@@ -141,7 +150,7 @@ okf-memex/                    # Template repository
 ├── raw/                      # Immutable source documents (see "Raw Directory Conventions" below)
 │   ├── web/  papers/  videos/  books/  code/  podcasts/  notes/
 │   └── assets/
-├── wiki/                     # OKF Bundle (empty template)
+├── wiki/                     # OKF Bundle (empty template; can be renamed via --bundle-name)
 │   ├── index.md              #   Content catalog (OKF §6)
 │   ├── log.md                #   Operation log (OKF §7)
 │   ├── Clippings → ../raw/web  # Symlink for Obsidian Web Clipper
@@ -149,6 +158,7 @@ okf-memex/                    # Template repository
 │   ├── concepts/             #   type: Concept
 │   ├── sources/              #   type: Source
 │   └── synthesis/            #   type: Synthesis
+├── .okf-config.json          # Optional: written by init_wiki.py when --bundle-name is custom
 └── .gitignore
 ```
 
@@ -197,6 +207,39 @@ For the subdirectory pattern: the **`.md` entry file is the canonical Source**. 
 - Only the seven subdirs above are scanned; files placed at `raw/` root are ignored
 - Scannable extensions: `.md`, `.pdf`, `.txt`, `.html`, `.epub`, `.ipynb` — other types need a `.md` companion
 - **Never modify files under `raw/`** — annotations and summaries live in `wiki/sources/<slug>.md`
+
+## Multi-Wiki Coexistence
+
+If you maintain multiple independent wikis (e.g. `~/yjzhuang-wiki/` and `~/home-wiki/`), opening each one's `wiki/` subdirectory in Obsidian shows **"wiki" for both vaults** — indistinguishable. Obsidian locks the vault name to the folder name; renaming changes the disk folder; symlinks get resolved via realpath. There's no display-only workaround.
+
+The fix: **give each wiki's bundle a distinctive name**.
+
+```bash
+# Specify at creation time
+python scripts/init_wiki.py create ~/yjzhuang-wiki --topic "..." --bundle-name yjzhuang
+python scripts/init_wiki.py create ~/home-wiki --topic "..." --bundle-name home
+
+# Resulting structure:
+#   ~/yjzhuang-wiki/yjzhuang/   ← Obsidian shows "yjzhuang"
+#   ~/home-wiki/home/           ← Obsidian shows "home"
+```
+
+The bundle name is recorded in `.okf-config.json` at the repo root, and all scripts read it automatically:
+
+```json
+{"bundle": "yjzhuang"}
+```
+
+**Migrating an existing `wiki/` repo**:
+
+```bash
+cd ~/yjzhuang-wiki
+mv wiki yjzhuang
+echo '{"bundle": "yjzhuang"}' > .okf-config.json
+git add -A && git commit -m "Rename bundle to yjzhuang for vault disambiguation"
+```
+
+`raw/`, `scripts/`, `AGENTS.md` are untouched. Bundle-relative links inside the wiki (`/entities/xxx.md` etc.) keep working — they're relative to the bundle root, so renaming the directory doesn't change their semantics.
 
 ## Obsidian Integration
 

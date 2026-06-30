@@ -11,7 +11,7 @@ This project implements the [Karpathy LLM Wiki pattern](https://gist.github.com/
 | Layer | Location | OKF | Your role |
 |---|---|---|---|
 | **Raw sources** | `raw/` | No | Read-only. Never modify. |
-| **Wiki** | `wiki/` | Yes (strict OKF v0.1) | You own this. Create, update, cross-reference. |
+| **Wiki** | `<bundle>/` (default `wiki/`, see §2.1) | Yes (strict OKF v0.1) | You own this. Create, update, cross-reference. |
 | **Schema** | `AGENTS.md` | No | This file. Co-evolve with user. |
 
 ### Role division
@@ -25,7 +25,7 @@ This project implements the [Karpathy LLM Wiki pattern](https://gist.github.com/
 ### 2.1 Directory layout
 
 ```
-wiki/                         # OKF Bundle root
+<bundle>/                     # OKF Bundle root (default: wiki/, configurable per repo)
 ├── index.md                  # Content catalog (§6 of OKF spec)
 ├── log.md                    # Operation log (§7 of OKF spec)
 ├── entities/                 # type: Entity
@@ -33,6 +33,17 @@ wiki/                         # OKF Bundle root
 ├── sources/                  # type: Source
 └── synthesis/                # type: Synthesis
 ```
+
+**Bundle directory name**: defaults to `wiki/`. Users running multiple wikis side-by-side may rename it (e.g. `yjzhuang/`, `home/`) to give Obsidian distinct vault names. The custom name is recorded in `<repo>/.okf-config.json`:
+
+```json
+{"bundle": "yjzhuang"}
+```
+
+All scripts auto-resolve the bundle from this config via `scripts/okf_paths.py`. Box should:
+- Treat the bundle root as whatever directory contains `index.md` + `log.md`, not literally "wiki/"
+- When writing paths in user-facing messages, use the actual bundle name
+- Bundle-relative links (`/entities/xxx.md`) remain unchanged — they're relative to the bundle root regardless of its on-disk name
 
 ### 2.2 OKF conformance requirements
 
@@ -377,14 +388,18 @@ For the subdirectory pattern: the **`.md` entry file is the canonical Source**. 
 
 ## 8. Scripts Reference
 
+All maintenance scripts accept their path arguments as **optional** — when omitted, they auto-resolve the bundle directory via `scripts/okf_paths.py` (walks up from CWD looking for `.okf-config.json`, falls back to `wiki/`). Pass an explicit path only when running from outside the repo.
+
 | Script | Command | Purpose |
 |---|---|---|
-| `okf_check.py` | `python scripts/okf_check.py wiki/` | Verify OKF v0.1 conformance |
-| `link_check.py` | `python scripts/link_check.py wiki/` | Detect broken links and orphan pages |
-| `gen_index.py` | `python scripts/gen_index.py wiki/` | Regenerate `wiki/index.md` from frontmatter |
-| `parse_log.py` | `python scripts/parse_log.py wiki/ [N]` | Show last N log entries (default 10) |
-| `scan_sources.py` | `python scripts/scan_sources.py wiki/ raw/` | Find unprocessed sources in raw/ |
-| `init_wiki.py` | `python scripts/init_wiki.py <dir> --topic "..."` | Scaffold a new wiki from template |
+| `okf_check.py` | `python scripts/okf_check.py [bundle]` | Verify OKF v0.1 conformance |
+| `link_check.py` | `python scripts/link_check.py [bundle]` | Detect broken links and orphan pages |
+| `gen_index.py` | `python scripts/gen_index.py [bundle]` | Regenerate `index.md` from frontmatter |
+| `parse_log.py` | `python scripts/parse_log.py [bundle] [N]` | Show last N log entries (default 10) |
+| `scan_sources.py` | `python scripts/scan_sources.py [bundle] [raw]` | Find unprocessed sources in raw/ |
+| `auto_toggle.py` | `python scripts/auto_toggle.py [repo] <ingest\|lint\|status> [on\|off]` | Toggle automation switches |
+| `init_wiki.py` | `python scripts/init_wiki.py create <dir> --topic "..." [--bundle-name <name>]` | Scaffold a new wiki from template |
+| `okf_paths.py` | (library, not invoked directly) | Bundle path resolver shared by all scripts above |
 
 All scripts:
 - Use standard Python 3, no third-party dependencies.

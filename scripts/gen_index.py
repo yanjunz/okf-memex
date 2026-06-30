@@ -7,7 +7,10 @@ and generates an index.md organized by type and directory.
 Preserves root index.md frontmatter (okf_version declaration).
 
 Usage:
-    python gen_index.py <wiki_dir>
+    python gen_index.py [wiki_dir]
+
+    wiki_dir is optional — if omitted, the bundle is resolved from
+    .okf-config.json or the default wiki/ directory by walking up from CWD.
 
 Exit codes:
     0 — index generated successfully
@@ -18,6 +21,9 @@ import sys
 import os
 import re
 import glob
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from okf_paths import resolve_bundle  # noqa: E402
 
 
 RESERVED_FILES = {"index.md", "log.md"}
@@ -63,13 +69,12 @@ def parse_frontmatter(content):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python gen_index.py <wiki_dir>")
-        sys.exit(1)
-
-    wiki_dir = sys.argv[1]
-    if not os.path.isdir(wiki_dir):
-        print(f"Error: {wiki_dir} is not a directory")
+    explicit = sys.argv[1] if len(sys.argv) > 1 else None
+    _, wiki_dir = resolve_bundle(explicit)
+    if wiki_dir is None:
+        print("Error: could not locate bundle directory.")
+        print("Pass it explicitly: python gen_index.py <wiki_dir>")
+        print("Or run from inside an OKF repo (contains .okf-config.json or wiki/).")
         sys.exit(1)
 
     # Preserve root index.md frontmatter if it has okf_version

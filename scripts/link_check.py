@@ -6,7 +6,10 @@ Scans all markdown links in the wiki and reports:
 2. Orphan pages — pages with no inbound links from other pages.
 
 Usage:
-    python link_check.py <wiki_dir>
+    python link_check.py [wiki_dir]
+
+    wiki_dir is optional — if omitted, the bundle is resolved from
+    .okf-config.json or the default wiki/ directory by walking up from CWD.
 
 Exit codes:
     0 — no issues found
@@ -17,6 +20,9 @@ import sys
 import os
 import re
 import glob
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from okf_paths import resolve_bundle  # noqa: E402
 
 
 RESERVED_FILES = {"index.md", "log.md"}
@@ -63,13 +69,12 @@ def extract_links(content, source_rel_path, wiki_dir):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python link_check.py <wiki_dir>")
-        sys.exit(1)
-
-    wiki_dir = sys.argv[1]
-    if not os.path.isdir(wiki_dir):
-        print(f"Error: {wiki_dir} is not a directory")
+    explicit = sys.argv[1] if len(sys.argv) > 1 else None
+    _, wiki_dir = resolve_bundle(explicit)
+    if wiki_dir is None:
+        print("Error: could not locate bundle directory.")
+        print("Pass it explicitly: python link_check.py <wiki_dir>")
+        print("Or run from inside an OKF repo (contains .okf-config.json or wiki/).")
         sys.exit(1)
 
     all_files = get_all_md_files(wiki_dir)

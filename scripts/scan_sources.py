@@ -5,7 +5,10 @@ Compares files in raw/ against Source pages in wiki/sources/ to find
 unprocessed sources. Outputs a structured report.
 
 Usage:
-    python scan_sources.py <wiki_dir> <raw_dir> [--json]
+    python scan_sources.py [wiki_dir] [raw_dir] [--json]
+
+    wiki_dir / raw_dir are optional — if omitted, both are resolved from
+    .okf-config.json (or default wiki/) by walking up from CWD.
 
 Exit codes:
     0 — no unprocessed sources found
@@ -21,6 +24,9 @@ import glob
 import json
 import argparse
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from okf_paths import resolve_bundle  # noqa: E402
 
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -141,17 +147,21 @@ def main():
     parser = argparse.ArgumentParser(
         description="Scan raw/ for unprocessed source files."
     )
-    parser.add_argument("wiki_dir", help="Wiki bundle directory (e.g. wiki/)")
-    parser.add_argument("raw_dir", help="Raw sources directory (e.g. raw/)")
+    parser.add_argument("wiki_dir", nargs="?", default=None,
+                        help="Wiki bundle directory (default: auto-resolve from .okf-config.json)")
+    parser.add_argument("raw_dir", nargs="?", default=None,
+                        help="Raw sources directory (default: <repo_root>/raw)")
     parser.add_argument("--json", action="store_true", help="Output JSON for automation")
     args = parser.parse_args()
 
-    wiki_dir = os.path.abspath(args.wiki_dir)
-    raw_dir = os.path.abspath(args.raw_dir)
-
-    if not os.path.isdir(wiki_dir):
-        print(f"Error: {wiki_dir} is not a directory")
+    repo_root, wiki_dir = resolve_bundle(args.wiki_dir)
+    if wiki_dir is None:
+        print("Error: could not locate bundle directory.")
+        print("Pass it explicitly: python scan_sources.py <wiki_dir> <raw_dir>")
+        print("Or run from inside an OKF repo (contains .okf-config.json or wiki/).")
         sys.exit(1)
+
+    raw_dir = os.path.abspath(args.raw_dir) if args.raw_dir else os.path.join(repo_root, "raw")
     if not os.path.isdir(raw_dir):
         print(f"Error: {raw_dir} is not a directory")
         sys.exit(1)
