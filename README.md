@@ -84,6 +84,7 @@ All scripts use standard Python 3 — no dependencies.
 # Scaffold & update (target dir required)
 python scripts/init_wiki.py create <dir> --topic "..." [--bundle-name yjzhuang]
 python scripts/init_wiki.py update <dir>
+python scripts/rename_bundle.py <new_name>            # Rename bundle dir (auto-resolve from CWD)
 
 # Wiki maintenance (run from inside the repo, no path needed)
 python scripts/okf_check.py       # OKF v0.1 conformance
@@ -140,6 +141,7 @@ okf-memex/                    # Template repository
 ├── AGENTS.md                 # Schema: Box's operation manual
 ├── scripts/                  # CLI tools
 │   ├── init_wiki.py          #   create / update wiki scaffold
+│   ├── rename_bundle.py      #   Rename the bundle dir (updates .okf-config.json)
 │   ├── okf_paths.py          #   bundle path resolver (shared by other scripts)
 │   ├── okf_check.py          #   OKF v0.1 conformance checker
 │   ├── link_check.py         #   Broken link & orphan detector
@@ -232,14 +234,18 @@ The bundle name is recorded in `.okf-config.json` at the repo root, and all scri
 
 **Migrating an existing `wiki/` repo**:
 
+Use the rename helper — one command does the rename + writes `.okf-config.json`:
+
 ```bash
 cd ~/yjzhuang-wiki
-mv wiki yjzhuang
-echo '{"bundle": "yjzhuang"}' > .okf-config.json
-git add -A && git commit -m "Rename bundle to yjzhuang for vault disambiguation"
+python scripts/rename_bundle.py yjzhuang
+git add -A && git commit -m "Rename bundle: wiki/ → yjzhuang/"
+git push
 ```
 
-`raw/`, `scripts/`, `AGENTS.md` are untouched. Bundle-relative links inside the wiki (`/entities/xxx.md` etc.) keep working — they're relative to the bundle root, so renaming the directory doesn't change their semantics.
+`raw/`, `scripts/`, `AGENTS.md` are untouched. Bundle-relative links inside the wiki (`/entities/xxx.md` etc.) keep working — they're relative to the bundle root, so renaming the directory doesn't change their semantics. The Clippings symlink is relative, so it follows the rename automatically.
+
+Reverting to the default `wiki/`? `python scripts/rename_bundle.py wiki` removes `.okf-config.json` at the same time (the default name is implicit — no config needed).
 
 ## Obsidian Integration
 

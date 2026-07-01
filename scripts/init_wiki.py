@@ -46,6 +46,7 @@ SCAFFOLD_FILES = [
     "scripts/scan_sources.py",
     "scripts/auto_toggle.py",
     "scripts/okf_paths.py",
+    "scripts/rename_bundle.py",
 ]
 
 

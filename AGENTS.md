@@ -399,6 +399,7 @@ All maintenance scripts accept their path arguments as **optional** — when omi
 | `scan_sources.py` | `python scripts/scan_sources.py [bundle] [raw]` | Find unprocessed sources in raw/ |
 | `auto_toggle.py` | `python scripts/auto_toggle.py [repo] <ingest\|lint\|status> [on\|off]` | Toggle automation switches |
 | `init_wiki.py` | `python scripts/init_wiki.py create <dir> --topic "..." [--bundle-name <name>]` | Scaffold a new wiki from template |
+| `rename_bundle.py` | `python scripts/rename_bundle.py <new_name> [<repo>]` | Rename the bundle dir + update `.okf-config.json` |
 | `okf_paths.py` | (library, not invoked directly) | Bundle path resolver shared by all scripts above |
 
 All scripts:
