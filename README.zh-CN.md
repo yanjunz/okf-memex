@@ -42,6 +42,18 @@ git diff                          # 查看变更
 git add -A && git commit -m "Update scaffold from okf-memex template"
 ```
 
+### 从已有 wiki 仓库 clone
+
+如果你从远端 clone 一个已存在的 wiki（不是从模板创建），bundle 里的 `Clippings` 和 `Notes` symlink **不会**跟着 clone 下来 —— 它们被 `.gitignore` 排除了（`*/Clippings`、`*/Notes`）。跑一次 update 就会自动 backfill：
+
+```bash
+git clone <your-wiki-repo> ~/my-wiki
+cd ~/my-wiki
+python scripts/init_wiki.py update .    # 补齐 Clippings 和 Notes symlink
+```
+
+> 为什么 gitignore：symlink 是 UX 装饰（让 Obsidian 能直接编辑 `raw/` 下的东西），目标路径对每个 wiki 都一样（`../raw/web`、`../raw/notes`），没有个性化内容，让 `init_wiki.py` 每次重建更简洁。
+
 ### 日常使用
 
 1. **打开** `wiki/` 作为 Obsidian vault

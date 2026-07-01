@@ -42,6 +42,18 @@ git diff                          # review changes
 git add -A && git commit -m "Update scaffold from okf-memex template"
 ```
 
+### Cloning an existing wiki repo
+
+If you `git clone` a wiki repo (rather than scaffolding fresh from the template), the bundle's `Clippings` and `Notes` symlinks **won't come along** — they're gitignored (`*/Clippings`, `*/Notes`). One `update` run backfills them:
+
+```bash
+git clone <your-wiki-repo> ~/my-wiki
+cd ~/my-wiki
+python scripts/init_wiki.py update .    # backfills Clippings and Notes symlinks
+```
+
+> Why gitignored: the symlinks are UX affordances (they let Obsidian edit `raw/` from inside the vault), and their targets are identical for every wiki (`../raw/web`, `../raw/notes`) — no per-repo content, so `init_wiki.py` regenerating them keeps the repo clean.
+
 ### Daily Usage
 
 1. **Open** `wiki/` as an Obsidian vault
