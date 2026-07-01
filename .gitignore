@@ -23,8 +23,11 @@ __pycache__/
 venv/
 
 # Obsidian
-.obsidian/workspace*
-.obsidian/cache
+# Use **/ so patterns match .obsidian/ inside any bundle dir (default wiki/, or a
+# custom name from --bundle-name). Anchoring to the repo root would silently miss
+# them because the vault is at <bundle>/.obsidian/, not repo-root/.obsidian/.
+**/.obsidian/workspace*
+**/.obsidian/cache
 .thumbs/
 # Clippings symlink in the bundle dir (default wiki/, but may be renamed)
 */Clippings
