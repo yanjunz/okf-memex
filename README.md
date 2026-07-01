@@ -46,9 +46,10 @@ git add -A && git commit -m "Update scaffold from okf-memex template"
 
 1. **Open** `wiki/` as an Obsidian vault
 2. **Clip sources** — use Obsidian Web Clipper, saves to `Clippings/` → `raw/web/` automatically
-3. **Ingest** — tell Box: `"摄入 raw/web/xxx.md"` or `"批量摄入"`
-4. **Query** — ask questions, Box reads the wiki and synthesizes answers
-5. **Lint** — periodically ask Box to health-check the wiki
+3. **Quick notes** — new `.md` in the `Notes/` folder inside the vault writes straight to `raw/notes/`
+4. **Ingest** — tell Box: `"摄入 raw/web/xxx.md"`, `"摄入 raw/notes/yyy.md"`, or `"批量摄入"`
+5. **Query** — ask questions, Box reads the wiki and synthesizes answers
+6. **Lint** — periodically ask Box to health-check the wiki
 
 ## How It Works
 
@@ -155,7 +156,8 @@ okf-memex/                    # Template repository
 ├── wiki/                     # OKF Bundle (empty template; can be renamed via --bundle-name)
 │   ├── index.md              #   Content catalog (OKF §6)
 │   ├── log.md                #   Operation log (OKF §7)
-│   ├── Clippings → ../raw/web  # Symlink for Obsidian Web Clipper
+│   ├── Clippings → ../raw/web    # Symlink for Obsidian Web Clipper
+│   ├── Notes → ../raw/notes      # Symlink for quick in-vault note-taking
 │   ├── entities/             #   type: Entity
 │   ├── concepts/             #   type: Concept
 │   ├── sources/              #   type: Source
@@ -251,6 +253,8 @@ Reverting to the default `wiki/`? `python scripts/rename_bundle.py wiki` removes
 
 - **Open `wiki/` as vault** — not the repo root
 - **Web Clipper**: saves to `Clippings/` → actually writes to `raw/web/` via symlink
+- **Quick notes**: create `.md` files in `Notes/` → actually writes to `raw/notes/`. Ingest later when useful
+- **Manual wiki edits**: edit any Entity/Concept/Source/Synthesis page directly — Box re-reads before writing to avoid clobbering
 - **Graph view**: visualize wiki connections, find hubs and orphans
 - **Dataview**: query frontmatter (`type`, `tags`, `timestamp`) for dynamic views
 - **Marp**: generate slide decks from wiki content

@@ -29,5 +29,7 @@ venv/
 **/.obsidian/workspace*
 **/.obsidian/cache
 .thumbs/
-# Clippings symlink in the bundle dir (default wiki/, but may be renamed)
+# Symlinks inside the bundle dir that point into raw/ — created by init_wiki.py,
+# don't track (bundle can be renamed, so use * prefix, not literal wiki/).
 */Clippings
+*/Notes

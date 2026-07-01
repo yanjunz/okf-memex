@@ -49,6 +49,14 @@ SCAFFOLD_FILES = [
     "scripts/rename_bundle.py",
 ]
 
+# Symlinks placed inside the bundle directory so users can browse/edit raw/
+# subdirs directly from Obsidian without leaving the vault.
+# Format: (link name, relative target from inside the bundle, description)
+BUNDLE_SYMLINKS = [
+    ("Clippings", "../raw/web", "for Obsidian Web Clipper"),
+    ("Notes", "../raw/notes", "for quick in-vault note-taking"),
+]
+
 
 def file_hash(filepath):
     """Return MD5 hash of file content, or None if unreadable."""
@@ -204,15 +212,17 @@ See [okf-memex](https://git.woa.com/yjzhuang/okf-memex) for framework documentat
     if os.path.exists(init_script):
         os.remove(init_script)
 
-    # Create symlink: <bundle>/Clippings → ../raw/web
-    # Lets Obsidian Web Clipper save directly into raw/web/ from the vault
-    clippings_link = os.path.join(target, bundle_name, "Clippings")
-    if not os.path.exists(clippings_link):
-        os.symlink("../raw/web", clippings_link)
+    # Create the standard bundle symlinks (Clippings, Notes) so raw/ subdirs
+    # are directly editable from Obsidian.
+    for link_name, link_target, desc in BUNDLE_SYMLINKS:
+        link_path = os.path.join(target, bundle_name, link_name)
+        if not os.path.exists(link_path):
+            os.symlink(link_target, link_path)
 
     print("✓ Directory structure created")
     print("✓ Demo content cleared")
-    print(f"✓ Symlink created: {bundle_name}/Clippings → ../raw/web (for Obsidian Web Clipper)")
+    for link_name, link_target, desc in BUNDLE_SYMLINKS:
+        print(f"✓ Symlink created: {bundle_name}/{link_name} → {link_target} ({desc})")
     print("✓ Fresh index.md and log.md generated")
     print("✓ README.md written")
     if bundle_name != DEFAULT_BUNDLE:
@@ -278,11 +288,12 @@ def cmd_update(args):
         shutil.copy2(init_src, init_dst)
         updated.append("scripts/init_wiki.py")
 
-    # Ensure symlink exists: <bundle>/Clippings → ../raw/web
-    clippings_link = os.path.join(target, bundle_name, "Clippings")
-    if not os.path.exists(clippings_link):
-        os.symlink("../raw/web", clippings_link)
-        updated.append(f"{bundle_name}/Clippings (symlink)")
+    # Backfill any missing bundle symlinks (e.g. Notes/ for wikis that predate it)
+    for link_name, link_target, _ in BUNDLE_SYMLINKS:
+        link_path = os.path.join(target, bundle_name, link_name)
+        if not os.path.exists(link_path):
+            os.symlink(link_target, link_path)
+            updated.append(f"{bundle_name}/{link_name} (symlink)")
 
     # Report
     if updated:

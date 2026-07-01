@@ -340,7 +340,7 @@ When the user asks to lint the wiki:
 | `books/` | Book chapters, highlights, ebooks. | `.epub`, `.pdf`, `.md` |
 | `code/` | Code snippets, notebooks, gists, or small project trees worth version-locking. See **Code patterns** below. | `.ipynb`, `.md`, `.py`, `.ts` (etc.) |
 | `podcasts/` | Podcast transcripts, episode notes. Avoid storing audio files. | `.md`, `.txt` |
-| `notes/` | Personal notes: meeting notes, conversation summaries, hand-authored memos. Anything that doesn't fit the categories above. | `.md`, `.txt` |
+| `notes/` | Personal notes: meeting notes, conversation summaries, hand-authored memos. Anything that doesn't fit the categories above. Wiki's `Notes/` symlinks here — new files created via Obsidian's vault land in this directory. | `.md`, `.txt` |
 | `assets/` | Images and supporting files referenced by other sources (e.g. clipper screenshots). NOT scanned by `scan_sources.py` — these are not standalone sources. | `.png`, `.jpg`, `.svg`, etc. |
 
 **Nested subdirectories**

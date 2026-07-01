@@ -46,9 +46,10 @@ git add -A && git commit -m "Update scaffold from okf-memex template"
 
 1. **打开** `wiki/` 作为 Obsidian vault
 2. **剪藏源文档** — 用 Obsidian Web Clipper，自动保存到 `Clippings/` → `raw/web/`
-3. **摄入** — 告诉 Box：`"摄入 raw/web/xxx.md"` 或 `"批量摄入"`
-4. **查询** — 随时提问，Box 从 wiki 综合回答
-5. **Lint** — 定期让 Box 做健康检查
+3. **随手记笔记** — 在 vault 里的 `Notes/` 直接新建文件，实际写入 `raw/notes/`
+4. **摄入** — 告诉 Box：`"摄入 raw/web/xxx.md"`、`"摄入 raw/notes/yyy.md"` 或 `"批量摄入"`
+5. **查询** — 随时提问，Box 从 wiki 综合回答
+6. **Lint** — 定期让 Box 做健康检查
 
 ## 工作原理
 
@@ -155,7 +156,8 @@ okf-memex/                    # 模板仓库
 ├── wiki/                     # OKF Bundle（空模板，可通过 --bundle-name 改名）
 │   ├── index.md              #   内容目录（OKF §6）
 │   ├── log.md                #   操作日志（OKF §7）
-│   ├── Clippings → ../raw/web  # 符号链接，供 Obsidian Web Clipper 使用
+│   ├── Clippings → ../raw/web    # 符号链接，供 Obsidian Web Clipper 使用
+│   ├── Notes → ../raw/notes      # 符号链接，Obsidian 里直接写 raw/notes/
 │   ├── entities/             #   type: Entity
 │   ├── concepts/             #   type: Concept
 │   ├── sources/              #   type: Source
@@ -251,6 +253,8 @@ git push
 
 - **打开 `wiki/` 作为 vault**（不是仓库根目录）
 - **Web Clipper**：保存到 `Clippings/` → 通过符号链接实际写入 `raw/web/`
+- **快速笔记**：在 `Notes/` 目录里新建 `.md` → 实际写入 `raw/notes/`。后续可以让 Box 摄入
+- **手动编辑 wiki 页面**：可以直接在 Obsidian 里改任何 Entity/Concept/Source/Synthesis 页面，Box 写入前会 re-read 避免覆盖
 - **图谱视图**：可视化 wiki 连接关系，发现枢纽页和孤儿页
 - **Dataview**：查询 frontmatter（`type`、`tags`、`timestamp`）生成动态视图
 - **Marp**：从 wiki 内容生成幻灯片
